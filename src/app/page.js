@@ -1,183 +1,73 @@
-'use client';
+'use client'
 
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { FormControl, FormLabel, Stack, Input, Button, Grid, CircularProgress, Box, FormHelperText, Typography } from '@mui/joy';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form';
-import { Input, Grid, Textarea, Button, FormControl, FormLabel, FormHelperText, Box } from '@mui/joy';
+import { signIn, useSession } from 'next-auth/react';
 import { Paper } from '@mui/material';
-import 'react-quill/dist/quill.snow.css';
 
-// Dynamically import ReactQuill without SSR
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const Login = () => {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  console.log("Status:  ", status);
+  console.log("Data: ", session);
 
-const BlogPostForm = () => {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
-  const [content, setContent] = useState('');
-  const [advancedOptions, setAdvancedOptions] = useState(false);
-  const [featuredImage, setFeaturedImage] = useState(null);
-
-  const categoryOptions = [
-    { value: 'tech', label: 'Tech' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'health', label: 'Health' },
-  ];
-
-  const tagOptions = [
-    { value: 'react', label: 'React' },
-    { value: 'javascript', label: 'JavaScript' },
-    { value: 'css', label: 'CSS' },
-  ];
-
-  const onSubmit = (data) => {
-    if (!content || content.trim() === '') {
-      return alert('Content is required');
+  useEffect(() => {
+    if(status === 'authenticated'){
+      router.push('/posts')
     }
+  }, [status, router])
 
-    const formData = {
-      ...data,
-      content,
-      featuredImage,
-    };
-    console.log(formData);
-    reset();
-    setContent('');
-    setFeaturedImage(null);
-  };
+  const onSubmit = async (data) => {
+    const result = await signIn('credentials', {
+      redirect: false,
+      username: data.username,
+      password: data.password,
+    });
+
+    if (result.ok) {
+      router.push('/posts')
+    } else {
+      alert(result.error)
+    }
+  }
+
+  if (status !== 'unauthenticated') {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
 
   return (
     <>
       <Grid container spacing={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Paper elevation={2} sx={{ padding: '1rem', marginTop: '1rem' }}>
-          <form onSubmit={handleSubmit(onSubmit)} className="blog-post-form">
-            {/* Title Input */}
-            <Box sx={{ mb: 3 }}>
-              <FormControl error={!!errors.title}>
-                <FormLabel htmlFor="title">Title</FormLabel>
-                <Input
-                  {...register('title', { required: 'Title is required' })}
-                  type="text"
-                  id="title"
-                  placeholder="Enter post title"
-                />
-                {errors.title && <FormHelperText>{errors.title.message}</FormHelperText>}
+        <Paper elevation={2} sx={{ padding: '1rem', mt: 5 }}>
+          <Box textAlign="center" padding="2rem">
+            <Typography level="h2">Login</Typography>
+          </Box>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Stack spacing={2}>
+              <FormControl error={!!errors.username}>
+                <FormLabel>Username</FormLabel>
+                <Input type="text" {...register('username', { required: true })} />
+                {errors.username && <FormHelperText>{errors.username.message}</FormHelperText>}
               </FormControl>
-            </Box>
-
-            {/* ReactQuill Editor */}
-            <Box sx={{ mb: 3 }}>
-              <FormLabel htmlFor="content">Content</FormLabel>
-              <ReactQuill
-                value={content}
-                onChange={setContent}
-                modules={{
-                  toolbar: [
-                    [{ header: '1' }, { header: '2' }, { font: [] }],
-                    [{ list: 'ordered' }, { list: 'bullet' }],
-                    ['bold', 'italic', 'underline'],
-                    ['link'],
-                    ['clean'],
-                  ],
-                }}
-              />
-              {!content.trim() && <FormHelperText error>Content is required</FormHelperText>}
-            </Box>
-            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-              <FormControl sx={{ width: '100%' }} error={!!errors.categories}>
-                <FormLabel htmlFor="categories">Categories</FormLabel>
-                <select
-                  style={{ padding: '1rem' }}
-                  {...register('categories', { required: 'At least one category is required' })}
-                >
-                  {tagOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-                {errors.categories && <FormHelperText>{errors.categories.message}</FormHelperText>}
+              <FormControl error={!!errors.password}>
+                <FormLabel>Password</FormLabel>
+                <Input type="password" {...register('password', { required: true })} />
+                {errors.password && <FormHelperText>{errors.password.message}</FormHelperText>}
               </FormControl>
-              <FormControl sx={{ width: '100%' }}>
-                <FormLabel htmlFor="tags">Tags</FormLabel>
-                <select
-                  style={{ padding: '1rem' }}
-                  {...register('tags')}
-                >
-                  {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </FormControl>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <FormControl>
-                <FormLabel htmlFor="featuredImage">Featured Image</FormLabel>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  {...register('featuredImage')}
-                  onChange={(e) => {
-                    const file = e.target.files[0]; // Get the selected file
-                    if (file) {
-                      setFeaturedImage(file); // Set the featured image state
-                    } else {
-                      setFeaturedImage(null); // Reset if no file is selected
-                    }
-                  }}
-                />
-                {featuredImage && <FormHelperText>Selected Image: {featuredImage.name}</FormHelperText>}
-              </FormControl>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <FormLabel>Status</FormLabel>
-              <FormControl>
-                <label>
-                  <input
-                    type="radio"
-                    value="draft"
-                    {...register('status')}
-                  />
-                  Draft
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    value="publish"
-                    {...register('status')}
-                  />
-                  Publish
-                </label>
-              </FormControl>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Button variant="outlined" onClick={() => setAdvancedOptions(!advancedOptions)}>
-                {advancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
-              </Button>
-              {advancedOptions && (
-                <Box sx={{ mt: 2 }}>
-                  <FormControl>
-                    <FormLabel htmlFor="slug">Slug</FormLabel>
-                    <Input {...register('slug')} id="slug" placeholder="Enter slug" />
-                  </FormControl>
-
-                  <FormControl sx={{ mt: 2 }}>
-                    <FormLabel htmlFor="metaDescription">Meta Description</FormLabel>
-                    <Textarea {...register('metaDescription')} id="metaDescription" placeholder="Enter meta description" />
-                  </FormControl>
-
-                  <FormControl sx={{ mt: 2 }}>
-                    <FormLabel htmlFor="keywords">Keywords</FormLabel>
-                    <Input {...register('keywords')} id="keywords" placeholder="Enter keywords" />
-                  </FormControl>
-                </Box>
-              )}
-            </Box>
-            <Button type="submit" color="primary">Submit</Button>
+              <Button type="submit" fullWidth>Login</Button>
+            </Stack>
           </form>
         </Paper>
-      </Grid>
+      </Grid >
     </>
-  );
-};
+  )
+}
 
-export default BlogPostForm;
+export default Login
