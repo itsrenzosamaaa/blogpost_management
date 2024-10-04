@@ -188,10 +188,10 @@ const BlogPostForm = ({ onAddPost }) => {
                         <Select
                             multiple
                             placeholder="Select tags"
-                            value={selectedTags} 
+                            value={selectedTags}
                             onChange={(event, newValue) => {
                                 setSelectedTags(newValue);
-                                setValue('tags', newValue); 
+                                setValue('tags', newValue);
                             }}
                         >
                             {tagOptions[selectedCategory]?.map((tag) => (
@@ -211,11 +211,18 @@ const BlogPostForm = ({ onAddPost }) => {
                             accept="image/*"
                             {...register('featuredImage')}
                             onChange={(e) => {
-                                const file = e.target.files[0]; 
+                                const file = e.target.files[0];
                                 if (file) {
-                                    setFeaturedImage(file); 
+                                    // Check if the file is an image and has a JPEG extension
+                                    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                                    if (validImageTypes.includes(file.type)) {
+                                        setFeaturedImage(file);
+                                    } else {
+                                        alert('Please upload a valid image file (JPEG, PNG, GIF)');
+                                        setFeaturedImage(null); // Reset if invalid
+                                    }
                                 } else {
-                                    setFeaturedImage(null); 
+                                    setFeaturedImage(null);
                                 }
                             }}
                         />
